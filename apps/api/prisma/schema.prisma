@@ -1,0 +1,170 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./open-ipl.db"
+}
+
+model Member {
+  id        String    @id @default(cuid())
+  email     String    @unique
+  password  String?   @map("password_hash")
+  name      String
+  phone     String?
+  avatarUrl String?
+  role      Role @default(MEMBER)
+  status    MemberStatus @default(PENDING)
+  applications Application[] @relation("Applicant")
+  payments Payment[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt()
+}
+
+model Document {
+  id        String   @id @default(cuid())
+  groupId   String
+  group     Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  applicationId String?
+  application Application? @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  filename  String
+  url       String
+  mimeType  String
+  size      Int
+  status    DocumentStatus @default(PENDING)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt()
+  @@index([groupId])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  type      String
+  payload   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt()
+}
+
+model Application {
+  id         String   @id @default(cuid())
+  memberId   String
+  member     Member   @relation(name: "Applicant", fields: [memberId], references: [id], onDelete: Cascade)
+  groupId    String
+  group      Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  status     ApplicationStatus @default(PENDING)
+  documents  Document[]
+  approvedAt DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt()
+  @@index([groupId, status])
+  @@index([memberId])
+}
+
+model Payment {
+  id         String   @id @default(cuid())
+  memberId   String
+  member     Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  groupId    String
+  group      Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  amount     Decimal
+  currency   String @default("IDR")
+  status     PaymentStatus @default(PENDING)
+  referenceId String @unique @map("internal_ref")
+  provider   String @default("MIDSNAP")
+  method     String @default("QRIS")
+  providerTxId String? @unique
+  message    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt()
+  @@index([memberId, status])
+  @@index([groupId, status])
+}
+
+model Transaction {
+  id          String   @id @default(cuid())
+  paymentId   String   @unique
+  referenceId String?
+  providerTxId String?
+  amount      Decimal
+  status      TransactionStatus @default(PENDING)
+  message     String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt()
+  @@index([status])
+}
+
+model Group {
+  id          String   @id @default(cuid())
+  name        String
+  type        GroupType
+  address     String?
+  memberCap   Int @default(30)
+  status      GroupStatus @default(PENDING)
+  duesAmount  Decimal @default(0)
+  duesFrequency DuesFrequency @default(MONTHLY)
+  adsEnabled  Boolean @default(false)
+  applications Application[]
+  payments Payment[]
+  documents Document[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt()
+}
+
+enum GroupType {
+  FAMILY
+  SCHOOL_CLASS
+  COMMUNITY
+  OTHER
+}
+
+enum GroupStatus {
+  PENDING
+  ACTIVE
+  CLOSED
+}
+
+enum DuesFrequency {
+  MONTHLY
+  YEARLY
+  ONCE
+}
+
+enum MemberStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  SUSPENDED
+}
+
+enum Role {
+  MEMBER
+  GROUP_LEADER
+  ADMIN
+}
+
+enum ApplicationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum DocumentStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  REFUNDED
+}
+
+enum TransactionStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  CANCELLED
+}
