@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import { z, ZodError } from "zod";
+import { Prisma } from "@prisma/client";
 import { ValidationError } from "../middleware/errors.js";
 import { GroupCreateSchema, GroupUpdateSchema, GroupApplicationSchema } from "../validations/group.validations.js";
 import { prisma } from "../config/database.js";
