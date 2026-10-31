@@ -1,0 +1,17 @@
+{
+  "name": "open-ipl",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Open IPL group management platform",
+  "scripts": {
+    "dev:api": "npm --prefix apps/api run dev",
+    "dev:portal": "npm --prefix apps/portal run dev",
+    "dev:mobile": "npm --prefix apps/mobile run start",
+    "test:api": "npm --prefix apps/api test",
+    "test:portal": "npm --prefix apps/portal test",
+    "test": "npm run test:api && npm run test:portal",
+    "build:api": "npm --prefix apps/api run build",
+    "build:portal": "npm --prefix apps/portal run build",
+    "build": "npm run build:api && npm run build:portal"
+  }
+}
