@@ -4,7 +4,10 @@ export const GroupApplySchema = z.object({
   groupId: z.string().cuid().regex(/^[A-Za-z0-9_-]+$/, "Invalid group id"),
 });
 
-export const GroupApplicationSchema = GroupApplySchema;
+export const GroupApplicationSchema = z.object({
+  groupId: z.string().cuid().regex(/^[A-Za-z0-9_-]+$/, "Invalid group id"),
+  memberId: z.string().cuid().regex(/^[A-Za-z0-9_-]+$/, "Invalid member id"),
+});
 
 export const ApplicationStatusSchema = z.enum(["PENDING", "APPROVED", "REJECTED"], {
   message: "Status must be PENDING, APPROVED, or REJECTED",

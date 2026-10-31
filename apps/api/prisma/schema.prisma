@@ -4,22 +4,24 @@ generator client {
 
 datasource db {
   provider = "sqlite"
-  url      = "file:./open-ipl.db"
+  url      = env("DATABASE_URL")
 }
 
 model Member {
-  id        String    @id @default(cuid())
-  email     String    @unique
-  password  String?   @map("password_hash")
-  name      String
-  phone     String?
-  avatarUrl String?
-  role      Role @default(MEMBER)
-  status    MemberStatus @default(PENDING)
+  id           String   @id @default(cuid())
+  email        String   @unique
+  password     String?  @map("password_hash")
+  name         String
+  phone        String?
+  avatarUrl    String?
+  role         Role @default(MEMBER)
+  status       MemberStatus @default(PENDING)
   applications Application[] @relation("Applicant")
-  payments Payment[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt()
+  payments     Payment[]
+  groupLeader  Group?   @relation("GroupLeader")
+  notifications Notification[]
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt()
 }
 
 model Document {
@@ -39,11 +41,13 @@ model Document {
 }
 
 model Notification {
-  id        String   @id @default(cuid())
-  type      String
-  payload   String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt()
+  id         String   @id @default(cuid())
+  type       String
+  payload    String?
+  recipientId String?
+  recipient  Member?  @relation(fields: [recipientId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt()
 }
 
 model Application {
@@ -51,7 +55,7 @@ model Application {
   memberId   String
   member     Member   @relation(name: "Applicant", fields: [memberId], references: [id], onDelete: Cascade)
   groupId    String
-  group      Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  group      Group    @relation(name: "Applicant", fields: [groupId], references: [id], onDelete: Cascade)
   status     ApplicationStatus @default(PENDING)
   documents  Document[]
   approvedAt DateTime?
@@ -99,12 +103,14 @@ model Group {
   name        String
   type        GroupType
   address     String?
+  leaderId    String?  @unique
+  leader      Member?  @relation("GroupLeader", fields: [leaderId], references: [id])
   memberCap   Int @default(30)
   status      GroupStatus @default(PENDING)
   duesAmount  Decimal @default(0)
   duesFrequency DuesFrequency @default(MONTHLY)
   adsEnabled  Boolean @default(false)
-  applications Application[]
+  applications Application[] @relation("Applicant")
   payments Payment[]
   documents Document[]
   createdAt   DateTime @default(now())

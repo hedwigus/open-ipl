@@ -1,8 +1,18 @@
 import { Request, Response, NextFunction } from "express";
 import { z, ZodError } from "zod";
+import { Prisma } from "@prisma/client";
 import { ValidationError } from "../middleware/errors.js";
 import { GroupCreateSchema, GroupUpdateSchema, GroupApplicationSchema } from "../validations/group.validations.js";
 import { prisma } from "../config/database.js";
+
+interface PaymentBody {
+  amount?: string;
+  currency?: string;
+  provider?: string;
+  method?: string;
+  message?: string;
+  memberId?: string;
+}
 
 export class GroupController {
   static create = async (req: Request, res: Response, next: NextFunction) => {
@@ -94,7 +104,11 @@ export class ApplicationController {
     try {
       const body = GroupApplicationSchema.parse(req.body);
       const application = await prisma.application.create({
-        data: { groupId: body.groupId, status: "PENDING" },
+        data: { 
+          groupId: body.groupId, 
+          memberId: body.memberId,
+          status: "PENDING" 
+        },
         include: { group: true },
       });
       res.status(201).json({ status: "ok", data: application });
@@ -151,9 +165,15 @@ export class DocumentController {
   static upload = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { groupId } = req.params;
-      const { fileUrl, fileName } = req.body;
+      const { url, filename, mimeType, size } = req.body;
       const document = await prisma.document.create({
-        data: { groupId, fileUrl: fileUrl || "", fileName: fileName || "" },
+        data: { 
+          groupId, 
+          url: url || "", 
+          filename: filename || "", 
+          mimeType: mimeType || "", 
+          size: Number(size) || 0 
+        },
       });
       res.status(201).json({ status: "ok", data: document });
     } catch (err) {
@@ -162,20 +182,33 @@ export class DocumentController {
   };
 }
 
+import { Prisma } from "@prisma/client";
+
 export class PaymentController {
-  static create = async (req: Request, res: Response, next: NextFunction) => {
+  static create = async (req: Request<any, any, PaymentBody>, res: Response, next: NextFunction) => {
     try {
       const { groupId } = req.params;
-      const { amount, description, paymentMethod } = req.body;
-      const payment = await prisma.payment.create({
-        data: {
-          groupId,
-          amount,
-          description,
-          paymentMethod,
-          status: "PENDING",
-        },
-      });
+      const { amount, currency, provider, method, message, memberId } = req.body as PaymentBody;
+      const data: {
+        groupId: string;
+        member: { connect: { id: string } };
+        amount: Prisma.Decimal;
+        currency: string;
+        provider: string;
+        method: string;
+        message: string | null;
+        status: string;
+      } = {
+        groupId,
+        member: { connect: { id: memberId || "" } },
+        amount: new Prisma.Decimal(String(amount) || "0"),
+        currency: currency || "IDR",
+        provider: provider || "MIDSNAP",
+        method: method || "QRIS",
+        message: message || null,
+        status: "PENDING",
+      };
+      const payment = await prisma.payment.create({ data });
       res.status(201).json({ status: "ok", data: payment });
     } catch (err) {
       next(err);
